@@ -12,7 +12,6 @@ const stripe = await stripePromise;
 const NavBar = () => {
   const { isAuthenticated, logout, user } = useAuth0();
   const buyCredits = async () => {
-    console.log(user.sub);
     const response = await axios.post(
       'http://localhost:8080/create-checkout-session',
       { customer_email: user.email },
