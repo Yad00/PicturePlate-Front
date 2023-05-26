@@ -1,16 +1,31 @@
 import { useState } from 'react';
+import { useQuery } from 'react-query';
 import { useAuth0 } from '@auth0/auth0-react';
 import axios from 'axios';
 import LoginButton from './LoginButton';
-import stake1 from './assets/stake1.png';
-import stake2 from './assets/stake2.png';
+import collage from './assets/collage.png';
 import HomeAuthenticated from './HomeAuthenticated';
 
 const Home = () => {
-  const { isAuthenticated } = useAuth0();
+  const { isAuthenticated, user } = useAuth0();
   const [prompt, setPrompt] = useState('');
+  const [creditError, setCreditError] = useState('');
+  const [inputError, setInputError] = useState('');
   const [imageSize, setImageSize] = useState('');
   const [imageURL, setImage] = useState([]);
+  const [imageNumber, setImageNumber] = useState(1);
+
+  const { data, refetch } = useQuery({
+    queryKey: ['myUser'],
+    queryFn: () =>
+      axios
+        .post(`${import.meta.env.VITE_BASE_URL}/getUser`, {
+          customer_email: user.email,
+        })
+        .then((res) => res.data),
+    enabled: false,
+    refetchOnWindowFocus: false,
+  });
 
   const handlePrompt = (e) => {
     setPrompt(e.target.value);
@@ -21,11 +36,35 @@ const Home = () => {
   };
 
   const createImg = async () => {
-    const response = await axios.post('http://localhost:8080/create', {
-      prompt,
-      imageSize,
-    });
-    setImage(response.data);
+    let cost;
+
+    if (imageSize === '1024x1024') {
+      cost = 1.1 * imageNumber;
+    } else {
+      cost = 1 * imageNumber;
+    }
+
+    if (!imageSize || prompt.trim().length === 0) {
+      setCreditError('');
+      setInputError('Image size and Prompt must be specified');
+    } else if (Math.floor(data.credits * 10) / 10 < cost) {
+      setInputError('');
+      setCreditError('Not Enough Credits');
+    } else {
+      setInputError('');
+      setCreditError('');
+      const response = await axios.post(
+        `${import.meta.env.VITE_BASE_URL}/create`,
+        {
+          prompt,
+          imageSize,
+          imageNumber,
+          email: user.email,
+        },
+      );
+      setImage(response.data);
+      refetch();
+    }
   };
 
   if (isAuthenticated) {
@@ -36,13 +75,18 @@ const Home = () => {
         handleImageSize={handleImageSize}
         createImg={createImg}
         prompt={prompt}
+        imageNumber={imageNumber}
+        setImageNumber={setImageNumber}
+        imageSize={imageSize}
+        inputError={inputError}
+        creditError={creditError}
       />
     );
   }
 
   return (
-    <div className="flex justify-center">
-      <div className="hero min-h-screen lg:w-1/2 bg-base-200">
+    <div className="flex flex-col lg:flex-row justify-center bg-base-200 min-h-screen lg:min-h-0">
+      <div className="hero lg:min-h-screen lg:w-1/2 bg-base-200 my-8 lg:my-0">
         <div className="hero-content text-center">
           <div className="max-w-md">
             <h1 className="text-5xl font-bold">
@@ -61,64 +105,13 @@ const Home = () => {
           </div>
         </div>
       </div>
-      <div className="container justify-center items-center bg-base-200 mx-auto w-1/2 hidden lg:flex">
-        <div className="container bg-base-200 mx-auto px-2">
-          <div className="-m-1 flex flex-wrap md:-m-2">
-            <div className="flex w-1/3 flex-wrap">
-              <div className="w-full p-1 md:p-2">
-                <img
-                  alt="gallery"
-                  className="block h-full w-full rounded-lg object-cover object-center"
-                  src={stake1}
-                />
-              </div>
-            </div>
-            <div className="flex w-1/3 flex-wrap">
-              <div className="w-full p-1 md:p-2">
-                <img
-                  alt="gallery"
-                  className="block h-full w-full rounded-lg object-cover object-center"
-                  src={stake2}
-                />
-              </div>
-            </div>
-            <div className="flex w-1/3 flex-wrap">
-              <div className="w-full p-1 md:p-2">
-                <img
-                  alt="gallery"
-                  className="block h-full w-full rounded-lg object-cover object-center"
-                  src={stake1}
-                />
-              </div>
-            </div>
-            <div className="flex w-1/3 flex-wrap">
-              <div className="w-full p-1 md:p-2">
-                <img
-                  alt="gallery"
-                  className="block h-full w-full rounded-lg object-cover object-center"
-                  src={stake1}
-                />
-              </div>
-            </div>
-            <div className="flex w-1/3 flex-wrap">
-              <div className="w-full p-1 md:p-2">
-                <img
-                  alt="gallery"
-                  className="block h-full w-full rounded-lg object-cover object-center"
-                  src={stake2}
-                />
-              </div>
-            </div>
-            <div className="flex w-1/3 flex-wrap">
-              <div className="w-full p-1 md:p-2">
-                <img
-                  alt="gallery"
-                  className="block h-full w-full rounded-lg object-cover object-center"
-                  src={stake1}
-                />
-              </div>
-            </div>
-          </div>
+      <div className="justify-center items-center bg-base-200 my-8 lg:my-0 w-full lg:w-1/2 flex">
+        <div className="w-3/4 lg:w-full p-1 md:p-2">
+          <img
+            alt="gallery"
+            className="block h-full w-full rounded-lg object-cover object-center"
+            src={collage}
+          />
         </div>
       </div>
     </div>

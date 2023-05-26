@@ -1,135 +1,173 @@
 import { useAuth0 } from '@auth0/auth0-react';
+import { useQuery } from 'react-query';
 import { loadStripe } from '@stripe/stripe-js';
+import { Link } from 'react-router-dom';
 import axios from 'axios';
 import LoginButton from './LoginButton';
-
-const stripePromise = loadStripe(
-  'pk_test_51N4oeGDQF6SNvIYtJC2rttkRepAoPZdJcUY9Kperr0plOINTDfuGglNOLRhIUy43Sj51ny2Z2zz509UmZHSIwCOL00v3uz3svU',
-);
+import { useState } from 'react';
+const stripePromise = loadStripe(import.meta.env.VITE_STRIPE_SECRET_KEY);
 
 const stripe = await stripePromise;
 
 const NavBar = () => {
   const { isAuthenticated, logout, user } = useAuth0();
+  //const [myUser, setMyUser] = useState([]);
+
+  const { data, isLoading } = useQuery({
+    queryKey: ['myUser'],
+    queryFn: () =>
+      axios
+        .post(`${import.meta.env.VITE_BASE_URL}/getUser`, {
+          customer_email: user.email,
+        })
+        .then((res) => res.data),
+    staleTime: 5000,
+  });
+
   const buyCredits = async () => {
     const response = await axios.post(
-      'http://localhost:8080/create-checkout-session',
+      `${import.meta.env.VITE_BASE_URL}/create-checkout-session`,
       { customer_email: user.email },
     );
     stripe.redirectToCheckout({ sessionId: response.data.sessionID });
   };
+  const [navbar, setNavbar] = useState(false);
 
-  return (
-    <div className="navbar bg-base-300">
-      <div className="navbar-start">
-        <div className="dropdown">
-          <label tabIndex={0} className="btn btn-ghost lg:hidden">
-            <svg
-              xmlns="http://www.w3.org/2000/svg"
-              className="h-5 w-5"
-              fill="none"
-              viewBox="0 0 24 24"
-              stroke="currentColor"
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth="2"
-                d="M4 6h16M4 12h8m-8 6h16"
-              />
-            </svg>
-          </label>
-          <ul
-            tabIndex={0}
-            className="menu menu-compact dropdown-content mt-3 p-2 shadow bg-base-100 rounded-box w-52"
+  if (isLoading) {
+    return (
+      <div className="flex justify-center items-center h-screen w-screen">
+        <div role="status">
+          <svg
+            aria-hidden="true"
+            className="inline w-8 h-8 mr-2 text-gray-200 animate-spin dark:text-gray-600 fill-blue-600"
+            viewBox="0 0 100 101"
+            fill="none"
+            xmlns="http://www.w3.org/2000/svg"
           >
-            <li>
-              <a>Item 1</a>
-            </li>
-            <li tabIndex={0}>
-              <a className="justify-between">
-                Parent
-                <svg
-                  className="fill-current"
-                  xmlns="http://www.w3.org/2000/svg"
-                  width="24"
-                  height="24"
-                  viewBox="0 0 24 24"
-                >
-                  <path d="M8.59,16.58L13.17,12L8.59,7.41L10,6L16,12L10,18L8.59,16.58Z" />
-                </svg>
-              </a>
-              <ul className="p-2">
-                <li>
-                  <a>Submenu 1</a>
-                </li>
-                <li>
-                  <a>Submenu 2</a>
-                </li>
-              </ul>
-            </li>
-            <li>
-              <a>Item 3</a>
-            </li>
-          </ul>
+            <path
+              d="M100 50.5908C100 78.2051 77.6142 100.591 50 100.591C22.3858 100.591 0 78.2051 0 50.5908C0 22.9766 22.3858 0.59082 50 0.59082C77.6142 0.59082 100 22.9766 100 50.5908ZM9.08144 50.5908C9.08144 73.1895 27.4013 91.5094 50 91.5094C72.5987 91.5094 90.9186 73.1895 90.9186 50.5908C90.9186 27.9921 72.5987 9.67226 50 9.67226C27.4013 9.67226 9.08144 27.9921 9.08144 50.5908Z"
+              fill="currentColor"
+            />
+            <path
+              d="M93.9676 39.0409C96.393 38.4038 97.8624 35.9116 97.0079 33.5539C95.2932 28.8227 92.871 24.3692 89.8167 20.348C85.8452 15.1192 80.8826 10.7238 75.2124 7.41289C69.5422 4.10194 63.2754 1.94025 56.7698 1.05124C51.7666 0.367541 46.6976 0.446843 41.7345 1.27873C39.2613 1.69328 37.813 4.19778 38.4501 6.62326C39.0873 9.04874 41.5694 10.4717 44.0505 10.1071C47.8511 9.54855 51.7191 9.52689 55.5402 10.0491C60.8642 10.7766 65.9928 12.5457 70.6331 15.2552C75.2735 17.9648 79.3347 21.5619 82.5849 25.841C84.9175 28.9121 86.7997 32.2913 88.1811 35.8758C89.083 38.2158 91.5421 39.6781 93.9676 39.0409Z"
+              fill="currentFill"
+            />
+          </svg>
+          <span className="sr-only">Loading...</span>
         </div>
-        <a className="btn btn-ghost normal-case text-xl">PicturePlate</a>
       </div>
-      <div className="navbar-center hidden lg:flex">
-        <ul className="menu menu-horizontal px-1">
-          <li>
-            <a>Item 1</a>
-          </li>
-          <li tabIndex={0}>
-            <a>
-              Parent
-              <svg
-                className="fill-current"
-                xmlns="http://www.w3.org/2000/svg"
-                width="20"
-                height="20"
-                viewBox="0 0 24 24"
+    );
+  }
+  return (
+    <nav className="w-full bg-base-300 shadow">
+      <div className="justify-between px-4 mx-auto lg:max-w-7xl md:items-center md:flex md:px-8">
+        <div>
+          <div className="flex items-center justify-between py-3 md:py-5 md:block">
+            <Link to="/">
+              <h2 className="text-2xl font-bold text-white">PicturePlate</h2>
+            </Link>
+            <div className="md:hidden">
+              <button
+                className="p-2 text-gray-700 rounded-md outline-none focus:border-gray-400 focus:border"
+                onClick={() => setNavbar(!navbar)}
               >
-                <path d="M7.41,8.58L12,13.17L16.59,8.58L18,10L12,16L6,10L7.41,8.58Z" />
-              </svg>
-            </a>
-            <ul className="p-2">
-              <li>
-                <a>Submenu 1</a>
-              </li>
-              <li>
-                <a>Submenu 2</a>
-              </li>
-            </ul>
-          </li>
-          <li>
-            <a>Item 3</a>
-          </li>
-        </ul>
+                {navbar ? (
+                  <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    className="w-6 h-6 text-white"
+                    viewBox="0 0 20 20"
+                    fill="currentColor"
+                  >
+                    <path
+                      fillRule="evenodd"
+                      d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z"
+                      clipRule="evenodd"
+                    />
+                  </svg>
+                ) : (
+                  <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    className="w-6 h-6 text-white"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                    stroke="currentColor"
+                    strokeWidth={2}
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      d="M4 6h16M4 12h16M4 18h16"
+                    />
+                  </svg>
+                )}
+              </button>
+            </div>
+          </div>
+        </div>
+        <div>
+          <div
+            className={`flex-1 justify-self-center pb-3 mt-8 lg:block lg:pb-0 lg:mt-0 ${
+              navbar ? 'block' : 'hidden'
+            }`}
+          >
+            <div className="mt-3 space-y-2 md:hidden">
+              {isAuthenticated ? (
+                <>
+                  <div className="w-full text-center">
+                    <span className=" text-white">
+                      {Math.floor(data.credits * 10) / 10} Credits
+                    </span>
+                  </div>
+                  <button
+                    className="btn w-full bg-slate-300 text-slate-950 hover:text-slate-300 mr-2"
+                    onClick={buyCredits}
+                  >
+                    Buy Credits
+                  </button>
+                  <button
+                    className="btn w-full"
+                    onClick={() =>
+                      logout({
+                        logoutParams: { returnTo: window.location.origin },
+                      })
+                    }
+                  >
+                    Log Out
+                  </button>
+                </>
+              ) : (
+                <LoginButton btnStyle="btn w-full" text="Log In" />
+              )}
+            </div>
+          </div>
+        </div>
+        <div className="hidden space-x-2 md:inline-block">
+          {isAuthenticated ? (
+            <>
+              <span className="text-white mr-2">
+                {Math.floor(data.credits * 10) / 10} Credits
+              </span>
+              <button
+                className="btn bg-slate-300 text-slate-950 hover:text-slate-300 mr-2"
+                onClick={buyCredits}
+              >
+                Buy Credits
+              </button>
+              <button
+                className="btn"
+                onClick={() =>
+                  logout({ logoutParams: { returnTo: window.location.origin } })
+                }
+              >
+                Log Out
+              </button>
+            </>
+          ) : (
+            <LoginButton btnStyle="btn" text="Log In" />
+          )}
+        </div>
       </div>
-      <div className="navbar-end">
-        {isAuthenticated ? (
-          <>
-            <button
-              className="btn bg-slate-300 text-slate-950 hover:text-slate-300 mr-2"
-              onClick={buyCredits}
-            >
-              Buy Credits
-            </button>
-            <button
-              className="btn"
-              onClick={() =>
-                logout({ logoutParams: { returnTo: window.location.origin } })
-              }
-            >
-              Log Out
-            </button>
-          </>
-        ) : (
-          <LoginButton btnStyle="btn" text="Log In" />
-        )}
-      </div>
-    </div>
+    </nav>
   );
 };
 
